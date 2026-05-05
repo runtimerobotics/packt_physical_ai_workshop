@@ -49,7 +49,7 @@ check_nvidia_driver() {
             return 1
         fi
     else
-        echo "NVIDIA GPU not found, or lspci is not installed."
+        echo "NVIDIA GPU not found."
         return 1
     fi
 }
