@@ -61,6 +61,7 @@ print_docker_post_install_message() {
     else
         echo "User '$target_user' has been added to the docker group."
         echo "Log out and log back in, reboot, or run 'newgrp docker' before using Docker without sudo."
+        echo "Then test Docker with: docker run hello-world"
     fi
 
     echo "Docker Installation finished"
