@@ -54,6 +54,18 @@ check_nvidia_driver() {
     fi
 }
 
+# Function to print Docker post-install instructions
+print_docker_post_install_message() {
+    if [[ "$target_user" == "root" ]]; then
+        echo "No non-root user detected. Run 'sudo usermod -aG docker <username>' for users who need Docker without sudo."
+    else
+        echo "User '$target_user' has been added to the docker group."
+        echo "Log out and log back in, reboot, or run 'newgrp docker' before using Docker without sudo."
+    fi
+
+    echo "Docker Installation finished"
+}
+
 # Function to install Docker
 install_docker() {
     local ubuntu_codename
@@ -75,17 +87,11 @@ install_docker() {
     sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin git openssh-server openssh-client
     sudo groupadd -f docker
 
-    if [[ "$target_user" == "root" ]]; then
-        echo "No non-root user detected. Run 'sudo usermod -aG docker <username>' for users who need Docker without sudo."
-    else
+    if [[ "$target_user" != "root" ]]; then
         sudo usermod -aG docker "$target_user"
-        echo "User '$target_user' has been added to the docker group."
-        echo "Log out and log back in, reboot, or run 'newgrp docker' before using Docker without sudo."
     fi
 
     sudo systemctl restart docker
-
-    echo "Docker Installation finished"
 }
 
 # Function to install NVIDIA Container Toolkit
@@ -112,6 +118,8 @@ echo "Checking for NVIDIA GPU and driver..."
 if check_nvidia_driver; then
     install_docker
     install_nvidia_container_toolkit
+    print_docker_post_install_message
 else
     install_docker
+    print_docker_post_install_message
 fi
