@@ -16,3 +16,11 @@ newgrp docker
 ```
 
 This refreshes your user group membership so Docker can run without `sudo`.
+
+Test Docker permissions with:
+
+```bash
+docker run hello-world
+```
+
+If you see a Docker socket permission error, refresh your group membership with `newgrp docker`, then run the test command again.
