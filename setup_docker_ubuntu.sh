@@ -56,15 +56,17 @@ check_nvidia_driver() {
 
 # Function to print Docker post-install instructions
 print_docker_post_install_message() {
+    echo "Docker Installation finished"
+
     if [[ "$target_user" == "root" ]]; then
         echo "No non-root user detected. Run 'sudo usermod -aG docker <username>' for users who need Docker without sudo."
     else
         echo "User '$target_user' has been added to the docker group."
-        echo "Log out and log back in, reboot, or run 'newgrp docker' before using Docker without sudo."
-        echo "Then test Docker with: docker run hello-world"
+        echo "Log out and log back in, reboot, or run this command before using Docker without sudo:"
+        echo "newgrp docker"
+        echo "Then test Docker with:"
+        echo "docker run hello-world"
     fi
-
-    echo "Docker Installation finished"
 }
 
 # Function to install Docker
