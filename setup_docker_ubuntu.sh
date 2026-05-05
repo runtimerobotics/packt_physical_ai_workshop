@@ -24,6 +24,15 @@ validate_ubuntu_version() {
     esac
 }
 
+# Function to install tools needed for GPU detection
+install_gpu_detection_tools() {
+    if ! command -v lspci > /dev/null 2>&1; then
+        echo "Installing pciutils for GPU detection..."
+        sudo apt-get update
+        sudo apt-get install -y pciutils
+    fi
+}
+
 # Function to check for NVIDIA GPU and driver
 check_nvidia_driver() {
     if command -v nvidia-smi > /dev/null 2>&1 && nvidia-smi > /dev/null 2>&1; then
@@ -96,6 +105,7 @@ install_nvidia_container_toolkit() {
 
 # Check for NVIDIA driver and call the appropriate functions
 validate_ubuntu_version
+install_gpu_detection_tools
 
 echo "Checking for NVIDIA GPU and driver..."
 
