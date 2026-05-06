@@ -1,6 +1,8 @@
 # packt_physical_ai_workshop
 A practical workshop on Physical AI with ROS 2—building intelligent robotic systems through perception, planning, control, and real-world deployment.
 
+Join the workshop discussion on [Discord](https://discord.gg/qXeYdqrkdn).
+
 ## PC Requirements for Isaac Sim
 
 Isaac Sim requires an NVIDIA RTX GPU with RT Cores. NVIDIA GPUs without RT Cores, such as A100 and H100, are not supported for Isaac Sim.
