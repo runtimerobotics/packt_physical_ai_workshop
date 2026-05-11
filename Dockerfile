@@ -95,6 +95,11 @@ ENV WORKSPACES_ROOT=/home/isaac-sim/workspaces
 ENV ISAACLAB_PATH=${WORKSPACES_ROOT}/IsaacLab
 ENV ISAACSIM_ROS_WS=${WORKSPACES_ROOT}/IsaacSim-ros_workspaces
 ENV ISAACSIM_PATH=/isaac-sim
+ENV ISAACSIM_PYTHON_EXE=${ISAACSIM_PATH}/python.sh
+ENV PYTHONUSERBASE=/isaac-sim/.local
+ENV PATH=${PYTHONUSERBASE}/bin:${PATH}
+ENV TERM=xterm
+ARG ISAACLAB_VERSION=v2.3.2
 
 RUN if id -u isaac-sim >/dev/null 2>&1; then \
       echo "isaac-sim ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/isaac-sim && \
@@ -108,23 +113,22 @@ USER isaac-sim
 WORKDIR ${WORKSPACES_ROOT}
 
 # Install Isaac Lab using Isaac Sim's Python runtime as the isaac-sim user.
-RUN git clone --depth=1 https://github.com/isaac-sim/IsaacLab.git ${ISAACLAB_PATH} && \
-    ln -sfn /isaac-sim ${ISAACLAB_PATH}/_isaac_sim && \
-    /isaac-sim/python.sh -m pip install --user --no-cache-dir --upgrade pip setuptools wheel && \
-    for pkg_dir in isaaclab isaaclab_tasks isaaclab_mimic; do \
-      if [ -d "${ISAACLAB_PATH}/source/${pkg_dir}" ]; then \
-        /isaac-sim/python.sh -m pip install --user --no-cache-dir -e "${ISAACLAB_PATH}/source/${pkg_dir}"; \
-      fi; \
-    done
+# Isaac Lab is pinned to the 2.3.x line because the base image is Isaac Sim 5.1.
+RUN git clone --depth=1 --branch ${ISAACLAB_VERSION} https://github.com/isaac-sim/IsaacLab.git ${ISAACLAB_PATH} && \
+    ln -sfn ${ISAACSIM_PATH} ${ISAACLAB_PATH}/_isaac_sim && \
+    ${ISAACSIM_PYTHON_EXE} -m pip install --user --no-cache-dir --upgrade pip setuptools wheel && \
+    cd ${ISAACLAB_PATH} && \
+    PIP_USER=1 PIP_NO_CACHE_DIR=1 ./isaaclab.sh --install all && \
+    ${ISAACSIM_PYTHON_EXE} -c "import isaaclab; print(isaaclab.__file__)"
 
 # Build ROS 2 Jazzy workspace from IsaacSim-ros_workspaces as the isaac-sim user.
 RUN git clone --depth=1 --recurse-submodules https://github.com/isaac-sim/IsaacSim-ros_workspaces.git ${ISAACSIM_ROS_WS} && \
-    /bin/bash -c "source /opt/ros/jazzy/setup.bash && \
+    /bin/bash -c "unset PYTHONPATH && source /opt/ros/jazzy/setup.bash && \
     cd ${ISAACSIM_ROS_WS}/jazzy_ws && \
     rosdep update && \
     rosdep install --from-paths src --ignore-src --rosdistro jazzy -r -y \
       --skip-keys='ackermann_msgs pointcloud_to_laserscan picknik_ament_copyright ros2_control_test_assets ros_testing ros2_control ros2_controllers'" && \
-    /bin/bash -c "source /opt/ros/jazzy/setup.bash && \
+    /bin/bash -c "unset PYTHONPATH && source /opt/ros/jazzy/setup.bash && \
     cd ${ISAACSIM_ROS_WS}/jazzy_ws && \
     colcon build --symlink-install \
       --packages-skip \
@@ -139,11 +143,23 @@ RUN git clone --depth=1 --recurse-submodules https://github.com/isaac-sim/IsaacS
       isaac_moveit \
       moveit_resources"
 
+ENV PYTHONPATH=${PYTHONUSERBASE}/lib/python3.11/site-packages:${ISAACLAB_PATH}/source/isaaclab:${ISAACLAB_PATH}/source/isaaclab_assets:${ISAACLAB_PATH}/source/isaaclab_tasks:${ISAACLAB_PATH}/source/isaaclab_mimic:${ISAACLAB_PATH}/source/isaaclab_rl
+
+RUN mkdir -p ${PYTHONUSERBASE}/bin && \
+    printf '%s\n' '#!/usr/bin/env bash' 'exec /isaac-sim/python.sh "$@"' > ${PYTHONUSERBASE}/bin/python && \
+    chmod +x ${PYTHONUSERBASE}/bin/python && \
+    ln -sfn python ${PYTHONUSERBASE}/bin/python3 && \
+    ${PYTHONUSERBASE}/bin/python -c "import toml; from isaaclab.app import AppLauncher; print(AppLauncher)"
+
 RUN printf '%s\n' \
     "[ -f /opt/ros/jazzy/setup.bash ] && source /opt/ros/jazzy/setup.bash" \
     "[ -f ${ISAACSIM_ROS_WS}/jazzy_ws/install/setup.bash ] && source ${ISAACSIM_ROS_WS}/jazzy_ws/install/setup.bash" \
     "export ISAACSIM_PATH=/isaac-sim" \
+    "export ISAACSIM_PYTHON_EXE=/isaac-sim/python.sh" \
     "export ISAACLAB_PATH=${ISAACLAB_PATH}" \
+    "export PYTHONUSERBASE=/isaac-sim/.local" \
+    "export PATH=/isaac-sim/.local/bin:\${PATH}" \
+    "export PYTHONPATH=/isaac-sim/.local/lib/python3.11/site-packages:${ISAACLAB_PATH}/source/isaaclab:${ISAACLAB_PATH}/source/isaaclab_assets:${ISAACLAB_PATH}/source/isaaclab_tasks:${ISAACLAB_PATH}/source/isaaclab_mimic:${ISAACLAB_PATH}/source/isaaclab_rl:\${PYTHONPATH}" \
     | sudo tee -a /isaac-sim/.bashrc >/dev/null && \
     sudo chown isaac-sim:isaac-sim /isaac-sim/.bashrc
 
