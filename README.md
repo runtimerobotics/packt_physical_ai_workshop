@@ -3,6 +3,7 @@ A practical workshop on Physical AI with ROS 2—building intelligent robotic sy
 
 Join the workshop discussion on [Discord](https://discord.gg/qXeYdqrkdn).
 
+
 ## PC Requirements for Isaac Sim
 
 Isaac Sim requires an NVIDIA RTX GPU with RT Cores. NVIDIA GPUs without RT Cores, such as A100 and H100, are not supported for Isaac Sim.
@@ -76,6 +77,14 @@ After the image is pulled and the Dev Containers extension is installed, open th
 
 [![01 - Setting Workshop Environment: Docker Dev Container](https://img.youtube.com/vi/bo14tujjxM4/hqdefault.jpg)](https://youtu.be/bo14tujjxM4)
 
+### 02 - Setting Cloud Environment: Vast.ai
+
+[![02 - Setting Cloud Environment: Vast.ai](https://img.youtube.com/vi/tlPWjQjGtt8/hqdefault.jpg)](https://youtu.be/tlPWjQjGtt8)
+
+### 03 - Testing Isaac Sim in Local and Vast.ai
+
+[![03 - Testing Isaac Sim in Local and Vast.ai](https://img.youtube.com/vi/ehf8Q3nfNKk/hqdefault.jpg)](https://youtu.be/ehf8Q3nfNKk)
+
 
 ## Possible Issues with NVIDIA Isaac Sim
 
@@ -91,3 +100,7 @@ Run:
 ```bash
 sudo chmod -R 777 ~/docker/isaac-sim
 ```
+
+## Instructor
+
+[Lentin Joseph](https://www.linkedin.com/in/lentinjoseph/) - Connect on LinkedIn for workshop updates, robotics content, and Physical AI resources.
