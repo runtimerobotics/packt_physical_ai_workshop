@@ -18,7 +18,7 @@ Notes:
 - The Isaac Sim container is supported on Linux.
 - More RAM and VRAM is recommended for advanced scenes, many sensors, and Isaac Lab training.
 - Internet access is required for online Isaac Sim assets and some extensions.
-- If you do not have a PC with these requirements, you can use a cloud GPU provider such as Vast.ai: <https://vast.ai/>.
+- If you do not have a PC with these requirements, you can use a cloud GPU provider such as Vast.ai: <https://cloud.vast.ai/?ref_id=374137/>.
 - Source: [NVIDIA Isaac Sim 5.1 Requirements](https://docs.isaacsim.omniverse.nvidia.com/5.1.0/installation/requirements.html).
 
 ## Docker Setup on Ubuntu

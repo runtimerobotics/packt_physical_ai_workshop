@@ -123,33 +123,23 @@ RUN git clone --depth=1 --branch ${ISAACLAB_VERSION} https://github.com/isaac-si
 
 # Build ROS 2 Jazzy workspace from IsaacSim-ros_workspaces as the isaac-sim user.
 RUN git clone --depth=1 --recurse-submodules https://github.com/isaac-sim/IsaacSim-ros_workspaces.git ${ISAACSIM_ROS_WS} && \
-    /bin/bash -c "unset PYTHONPATH && source /opt/ros/jazzy/setup.bash && \
+    /bin/bash -c "unset PYTHONPATH && export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && \
+    source /opt/ros/jazzy/setup.bash && \
     cd ${ISAACSIM_ROS_WS}/jazzy_ws && \
     rosdep update && \
     rosdep install --from-paths src --ignore-src --rosdistro jazzy -r -y \
       --skip-keys='ackermann_msgs pointcloud_to_laserscan picknik_ament_copyright ros2_control_test_assets ros_testing ros2_control ros2_controllers'" && \
-    /bin/bash -c "unset PYTHONPATH && source /opt/ros/jazzy/setup.bash && \
+    /bin/bash -c "unset PYTHONPATH && export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && \
+    source /opt/ros/jazzy/setup.bash && \
     cd ${ISAACSIM_ROS_WS}/jazzy_ws && \
-    colcon build --symlink-install \
-      --packages-skip \
-      cmdvel_to_ackermann \
-      carter_navigation \
-      iw_hub_navigation \
-      isaac_ros_navigation_goal \
-      h1_fullbody_controller \
-      topic_based_ros2_control \
-      moveit_resources_panda_description \
-      moveit_resources_panda_moveit_config \
-      isaac_moveit \
-      moveit_resources"
+    colcon build --symlink-install"
 
 ENV PYTHONPATH=${PYTHONUSERBASE}/lib/python3.11/site-packages:${ISAACLAB_PATH}/source/isaaclab:${ISAACLAB_PATH}/source/isaaclab_assets:${ISAACLAB_PATH}/source/isaaclab_tasks:${ISAACLAB_PATH}/source/isaaclab_mimic:${ISAACLAB_PATH}/source/isaaclab_rl
 
 RUN mkdir -p ${PYTHONUSERBASE}/bin && \
-    printf '%s\n' '#!/usr/bin/env bash' 'exec /isaac-sim/python.sh "$@"' > ${PYTHONUSERBASE}/bin/python && \
-    chmod +x ${PYTHONUSERBASE}/bin/python && \
-    ln -sfn python ${PYTHONUSERBASE}/bin/python3 && \
-    ${PYTHONUSERBASE}/bin/python -c "import toml; from isaaclab.app import AppLauncher; print(AppLauncher)"
+    printf '%s\n' '#!/usr/bin/env bash' 'exec /isaac-sim/python.sh "$@"' > ${PYTHONUSERBASE}/bin/isaac-python && \
+    chmod +x ${PYTHONUSERBASE}/bin/isaac-python && \
+    ${PYTHONUSERBASE}/bin/isaac-python -c "import toml; from isaaclab.app import AppLauncher; print(AppLauncher)"
 
 RUN printf '%s\n' \
     "[ -f /opt/ros/jazzy/setup.bash ] && source /opt/ros/jazzy/setup.bash" \
@@ -160,6 +150,7 @@ RUN printf '%s\n' \
     "export PYTHONUSERBASE=/isaac-sim/.local" \
     "export PATH=/isaac-sim/.local/bin:\${PATH}" \
     "export PYTHONPATH=/isaac-sim/.local/lib/python3.11/site-packages:${ISAACLAB_PATH}/source/isaaclab:${ISAACLAB_PATH}/source/isaaclab_assets:${ISAACLAB_PATH}/source/isaaclab_tasks:${ISAACLAB_PATH}/source/isaaclab_mimic:${ISAACLAB_PATH}/source/isaaclab_rl:\${PYTHONPATH}" \
+    "alias isaac-python=/isaac-sim/python.sh" \
     | sudo tee -a /isaac-sim/.bashrc >/dev/null && \
     sudo chown isaac-sim:isaac-sim /isaac-sim/.bashrc
 
