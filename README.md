@@ -53,10 +53,34 @@ Pull the prebuilt workshop image:
 docker pull therobocademy/packt_physical_ai_workshop:latest
 ```
 
+## Install VS Code on Ubuntu
+
+Download and install the latest stable VS Code Debian package:
+
+```bash
+wget https://update.code.visualstudio.com/latest/linux-deb-x64/stable -O vscode.deb
+sudo apt install ./vscode.deb
+```
+
+After VS Code is installed, open it and install the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers).
+
 ## Use VSCode and Dev Container
 
-After the image is pulled, install the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) in VS Code, then open the `packt_physical_ai_workshop` folder. VS Code should automatically detect the dev container configuration and show a prompt to **Reopen the folder in the container**.
+After the image is pulled and the Dev Containers extension is installed, open the `packt_physical_ai_workshop` folder in VS Code. VS Code should automatically detect the dev container configuration and show a prompt to **Reopen the folder in the container**.
+
+## Possible Issues with NVIDIA Isaac Sim
+
+If you see the following texture cache errors:
+
+```text
+Failed to create texture cache in /isaac-sim/.cache/ov/texturecache
+Failed to create texture cache folder /isaac-sim/.cache/ov/texturecache
+```
+
+Run:
+
+```bash
+sudo chmod -R 777 ~/docker/isaac-sim
+```
 
 ## Workshop Setup: Video Tutorial
-
-
