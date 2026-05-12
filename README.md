@@ -68,6 +68,13 @@ After VS Code is installed, open it and install the [Dev Containers extension](h
 
 After the image is pulled and the Dev Containers extension is installed, open the `packt_physical_ai_workshop` folder in VS Code. VS Code should automatically detect the dev container configuration and show a prompt to **Reopen the folder in the container**.
 
+
+
+## Workshop Setup: Video Tutorial
+
+
+
+
 ## Possible Issues with NVIDIA Isaac Sim
 
 If you see the following texture cache errors:
@@ -82,5 +89,3 @@ Run:
 ```bash
 sudo chmod -R 777 ~/docker/isaac-sim
 ```
-
-## Workshop Setup: Video Tutorial
