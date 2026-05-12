@@ -53,6 +53,10 @@ Pull the prebuilt workshop image:
 docker pull therobocademy/packt_physical_ai_workshop:latest
 ```
 
-## Note
+## Use VSCode and Dev Container
 
-This document is still developing.
+After the image is pulled, install the [Dev Containers extension](https://marketplace.visualstudio.com/items?itemName=ms-vscode-remote.remote-containers) in VS Code, then open the `packt_physical_ai_workshop` folder. VS Code should automatically detect the dev container configuration and show a prompt to **Reopen the folder in the container**.
+
+## Workshop Setup: Video Tutorial
+
+

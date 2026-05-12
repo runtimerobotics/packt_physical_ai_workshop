@@ -6,7 +6,7 @@ USER root
 ENV DEBIAN_FRONTEND=noninteractive
 ENV TZ=Etc/UTC
 
-# Install base tools, locale, ROS 2 apt source, and Gazebo apt source.
+# Install base tools, locale, ROS 2 apt source, Gazebo apt source, and Isaac ROS apt source.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     ca-certificates \
     curl \
@@ -38,6 +38,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     chmod 0644 /etc/apt/keyrings/packages.microsoft.gpg && \
     echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/packages.microsoft.gpg] https://packages.microsoft.com/repos/code stable main" \
       > /etc/apt/sources.list.d/vscode.list && \
+    curl -fsSL https://isaac.download.nvidia.com/isaac-ros/repos.key \
+      | gpg --dearmor \
+      | tee /usr/share/keyrings/nvidia-isaac-ros.gpg > /dev/null && \
+    touch /etc/apt/sources.list.d/nvidia-isaac-ros.list && \
+    s="deb [signed-by=/usr/share/keyrings/nvidia-isaac-ros.gpg] https://isaac.download.nvidia.com/isaac-ros/release-4.2 noble-jetpack main" && \
+    grep -qxF "$s" /etc/apt/sources.list.d/nvidia-isaac-ros.list || echo "$s" | tee -a /etc/apt/sources.list.d/nvidia-isaac-ros.list && \
     curl -fsSL https://repo.download.nvidia.com/jetson/jetson-ota-public.asc \
       | gpg --dearmor \
       > /usr/share/keyrings/nvidia-jetson-ota.gpg && \
@@ -72,6 +78,32 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     code \
     ros-jazzy-usb-cam \
     ros-jazzy-rqt-image-view && \
+    # Isaac ROS apt binaries are arm64-only in release-4.2 noble-jetpack as of 2026-03-12.
+    # Install requested packages when present; skip on amd64 so the image still builds.
+    for pkg in \
+      ros-jazzy-isaac-ros-apriltag \
+      ros-jazzy-isaac-ros-examples \
+      ros-jazzy-isaac-ros-h264-decoder \
+      ros-jazzy-isaac-ros-segment-anything \
+      ros-jazzy-isaac-ros-segformer \
+      ros-jazzy-isaac-ros-nvblox \
+      ros-jazzy-isaac-ros-detectnet \
+      ros-jazzy-isaac-ros-dnn-image-encoder \
+      ros-jazzy-isaac-ros-triton \
+      ros-jazzy-isaac-ros-grounding-dino \
+      ros-jazzy-isaac-ros-grounding-dino-models-install \
+      ros-jazzy-isaac-ros-yolov8 \
+      ros-jazzy-isaac-ros-tensor-rt \
+      ros-jazzy-isaac-ros-centerpose \
+      ros-jazzy-isaac-ros-dope \
+      ros-jazzy-isaac-ros-foundationpose \
+      ros-jazzy-isaac-ros-visual-slam; do \
+      if apt-cache show "$pkg" >/dev/null 2>&1; then \
+        apt-get install -y --no-install-recommends "$pkg"; \
+      else \
+        echo "Skipping unavailable package on this architecture: $pkg"; \
+      fi; \
+    done && \
     for pkg in ros-jazzy-robot-steering ros-jazzy-steering-controllers ros-jazzy-ackermann-steering-controller; do \
       if apt-cache show "$pkg" >/dev/null 2>&1; then \
         apt-get install -y --no-install-recommends "$pkg"; \
@@ -92,14 +124,10 @@ ENV LC_ALL=en_US.UTF-8
 ENV ROS_DISTRO=jazzy
 ENV RMW_IMPLEMENTATION=rmw_fastrtps_cpp
 ENV WORKSPACES_ROOT=/home/isaac-sim/workspaces
+ENV ISAAC_ROS_WS=${WORKSPACES_ROOT}/isaac_ros-dev
 ENV ISAACLAB_PATH=${WORKSPACES_ROOT}/IsaacLab
 ENV ISAACSIM_ROS_WS=${WORKSPACES_ROOT}/IsaacSim-ros_workspaces
 ENV ISAACSIM_PATH=/isaac-sim
-ENV ISAACSIM_PYTHON_EXE=${ISAACSIM_PATH}/python.sh
-ENV PYTHONUSERBASE=/isaac-sim/.local
-ENV PATH=${PYTHONUSERBASE}/bin:${PATH}
-ENV TERM=xterm
-ARG ISAACLAB_VERSION=v2.3.2
 
 RUN if id -u isaac-sim >/dev/null 2>&1; then \
       echo "isaac-sim ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/isaac-sim && \
@@ -112,45 +140,54 @@ USER isaac-sim
 
 WORKDIR ${WORKSPACES_ROOT}
 
+# Setup Isaac ROS workspace as the isaac-sim user.
+RUN mkdir -p ${ISAAC_ROS_WS}/src && \
+    cd ${ISAAC_ROS_WS}/src && \
+    git clone --depth=1 https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_common.git && \
+    git clone --depth=1 https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_nitros.git && \
+    git clone --depth=1 https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_image_pipeline.git && \
+    git clone --depth=1 https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_apriltag.git && \
+    git clone --depth=1 https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_visual_slam.git
+
 # Install Isaac Lab using Isaac Sim's Python runtime as the isaac-sim user.
-# Isaac Lab is pinned to the 2.3.x line because the base image is Isaac Sim 5.1.
-RUN git clone --depth=1 --branch ${ISAACLAB_VERSION} https://github.com/isaac-sim/IsaacLab.git ${ISAACLAB_PATH} && \
-    ln -sfn ${ISAACSIM_PATH} ${ISAACLAB_PATH}/_isaac_sim && \
-    ${ISAACSIM_PYTHON_EXE} -m pip install --user --no-cache-dir --upgrade pip setuptools wheel && \
-    cd ${ISAACLAB_PATH} && \
-    PIP_USER=1 PIP_NO_CACHE_DIR=1 ./isaaclab.sh --install all && \
-    ${ISAACSIM_PYTHON_EXE} -c "import isaaclab; print(isaaclab.__file__)"
+RUN git clone --depth=1 https://github.com/isaac-sim/IsaacLab.git ${ISAACLAB_PATH} && \
+    ln -sfn /isaac-sim ${ISAACLAB_PATH}/_isaac_sim && \
+    /isaac-sim/python.sh -m pip install --user --no-cache-dir --upgrade pip setuptools wheel && \
+    for pkg_dir in isaaclab isaaclab_tasks isaaclab_mimic; do \
+      if [ -d "${ISAACLAB_PATH}/source/${pkg_dir}" ]; then \
+        /isaac-sim/python.sh -m pip install --user --no-cache-dir -e "${ISAACLAB_PATH}/source/${pkg_dir}"; \
+      fi; \
+    done
 
 # Build ROS 2 Jazzy workspace from IsaacSim-ros_workspaces as the isaac-sim user.
 RUN git clone --depth=1 --recurse-submodules https://github.com/isaac-sim/IsaacSim-ros_workspaces.git ${ISAACSIM_ROS_WS} && \
-    /bin/bash -c "unset PYTHONPATH && export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && \
-    source /opt/ros/jazzy/setup.bash && \
+    /bin/bash -c "source /opt/ros/jazzy/setup.bash && \
     cd ${ISAACSIM_ROS_WS}/jazzy_ws && \
     rosdep update && \
     rosdep install --from-paths src --ignore-src --rosdistro jazzy -r -y \
       --skip-keys='ackermann_msgs pointcloud_to_laserscan picknik_ament_copyright ros2_control_test_assets ros_testing ros2_control ros2_controllers'" && \
-    /bin/bash -c "unset PYTHONPATH && export PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin && \
-    source /opt/ros/jazzy/setup.bash && \
+    /bin/bash -c "source /opt/ros/jazzy/setup.bash && \
     cd ${ISAACSIM_ROS_WS}/jazzy_ws && \
-    colcon build --symlink-install"
-
-ENV PYTHONPATH=${PYTHONUSERBASE}/lib/python3.11/site-packages:${ISAACLAB_PATH}/source/isaaclab:${ISAACLAB_PATH}/source/isaaclab_assets:${ISAACLAB_PATH}/source/isaaclab_tasks:${ISAACLAB_PATH}/source/isaaclab_mimic:${ISAACLAB_PATH}/source/isaaclab_rl
-
-RUN mkdir -p ${PYTHONUSERBASE}/bin && \
-    printf '%s\n' '#!/usr/bin/env bash' 'exec /isaac-sim/python.sh "$@"' > ${PYTHONUSERBASE}/bin/isaac-python && \
-    chmod +x ${PYTHONUSERBASE}/bin/isaac-python && \
-    ${PYTHONUSERBASE}/bin/isaac-python -c "import toml; from isaaclab.app import AppLauncher; print(AppLauncher)"
+    colcon build --symlink-install \
+      --packages-skip \
+      cmdvel_to_ackermann \
+      carter_navigation \
+      iw_hub_navigation \
+      isaac_ros_navigation_goal \
+      h1_fullbody_controller \
+      topic_based_ros2_control \
+      moveit_resources_panda_description \
+      moveit_resources_panda_moveit_config \
+      isaac_moveit \
+      moveit_resources"
 
 RUN printf '%s\n' \
     "[ -f /opt/ros/jazzy/setup.bash ] && source /opt/ros/jazzy/setup.bash" \
+    "export ISAAC_ROS_WS=\"\${ISAAC_ROS_WS:-\${HOME}/workspaces/isaac_ros-dev/}\"" \
+    "[ -f ${ISAAC_ROS_WS}/install/setup.bash ] && source ${ISAAC_ROS_WS}/install/setup.bash" \
     "[ -f ${ISAACSIM_ROS_WS}/jazzy_ws/install/setup.bash ] && source ${ISAACSIM_ROS_WS}/jazzy_ws/install/setup.bash" \
     "export ISAACSIM_PATH=/isaac-sim" \
-    "export ISAACSIM_PYTHON_EXE=/isaac-sim/python.sh" \
     "export ISAACLAB_PATH=${ISAACLAB_PATH}" \
-    "export PYTHONUSERBASE=/isaac-sim/.local" \
-    "export PATH=/isaac-sim/.local/bin:\${PATH}" \
-    "export PYTHONPATH=/isaac-sim/.local/lib/python3.11/site-packages:${ISAACLAB_PATH}/source/isaaclab:${ISAACLAB_PATH}/source/isaaclab_assets:${ISAACLAB_PATH}/source/isaaclab_tasks:${ISAACLAB_PATH}/source/isaaclab_mimic:${ISAACLAB_PATH}/source/isaaclab_rl:\${PYTHONPATH}" \
-    "alias isaac-python=/isaac-sim/python.sh" \
     | sudo tee -a /isaac-sim/.bashrc >/dev/null && \
     sudo chown isaac-sim:isaac-sim /isaac-sim/.bashrc
 
