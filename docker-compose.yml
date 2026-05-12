@@ -8,8 +8,7 @@ services:
     gpus: all
     stdin_open: true
     tty: true
-    devices:
-      - /dev/video0:/dev/video0
+    privileged: true
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -21,6 +20,7 @@ services:
       - QT_X11_NO_MITSHM=1
       - LIBGL_ALWAYS_INDIRECT=0
     volumes:
+      - /dev:/dev:rw
       # Linux X11 unix socket (harmless on WSL if present)
       - /tmp/.X11-unix:/tmp/.X11-unix:rw
       - ${HOME}/docker/isaac-sim/cache/main:/isaac-sim/.cache:rw
