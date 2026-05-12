@@ -72,7 +72,9 @@ After the image is pulled and the Dev Containers extension is installed, open th
 
 ## Workshop Setup: Video Tutorial
 
+### 01 - Setting Workshop Environment: Docker Dev Container
 
+[![01 - Setting Workshop Environment: Docker Dev Container](https://img.youtube.com/vi/bo14tujjxM4/hqdefault.jpg)](https://youtu.be/bo14tujjxM4)
 
 
 ## Possible Issues with NVIDIA Isaac Sim
